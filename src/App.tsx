@@ -1,6 +1,23 @@
 import { MapContainer, TileLayer } from "react-leaflet";
+import { useEffect } from "react";
+import { getTrafficDetectors } from "./services/trafficApi";
 
 function App() {
+
+  useEffect(() => {
+    async function loadTrafficData() {
+      try {
+        const data = await getTrafficDetectors();
+        console.log("Traffic data:", data);
+        console.log("First detector:", data.features[0]);
+      } catch (error) {
+        console.error("API error:", error);
+      }
+    }
+
+    loadTrafficData();
+  }, []);
+
   return (
     <div className="h-screen w-screen bg-slate-100">
       <header className="flex h-16 items-center border-b border-slate-200 bg-white px-6">
