@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -11,8 +11,14 @@ import type { TrafficFeature } from "./types/traffic";
 import {
   formatMeasurementTime,
   formatSpeed,
+  getDataAge,
+  getFreshnessLabel,
   getHeavyTrafficPercentage,
   getTotalTraffic,
+  calculateTrafficThresholds,
+  getTrafficColor,
+  getTrafficLevel,
+  getTrafficRadius,
 } from "./utils/traffic";
 
 proj4.defs(
@@ -23,6 +29,23 @@ proj4.defs(
 
 function App() {
   const [trafficData, setTrafficData] = useState<TrafficFeature[]>([]);
+
+  const trafficTotals = useMemo(() => {
+    return trafficData.map((detector) =>
+      getTotalTraffic(
+        detector.properties.total_flow_forwards,
+        detector.properties.total_flow_backwards
+      )
+    );
+  }, [trafficData]);
+
+  const trafficThresholds = useMemo(() => {
+    return calculateTrafficThresholds(trafficTotals);
+  }, [trafficTotals]);
+
+  const maxTraffic = useMemo(() => {
+    return Math.max(...trafficTotals, 0);
+  }, [trafficTotals]);
 
   useEffect(() => {
   async function loadTrafficData() {
@@ -52,7 +75,7 @@ function App() {
         </h1>
       </header>
 
-      <main className="h-[calc(100vh-4rem)]">
+      <main className="relative h-[calc(100vh-4rem)]">
         <MapContainer
           center={[58.6, 25.0]}
           zoom={7}
@@ -84,6 +107,18 @@ function App() {
               (total_flow_forwards ?? 0) +
               (total_flow_backwards ?? 0);
 
+            const trafficLevel = getTrafficLevel(
+              totalTraffic,
+              trafficThresholds
+            );
+
+            const markerColor = getTrafficColor(trafficLevel);
+
+            const markerRadius = getTrafficRadius(
+              totalTraffic,
+              maxTraffic
+            );
+
             const totalHeavyTraffic =
               (heavy_traffic_forwards ?? 0) +
               (heavy_traffic_backwards ?? 0);
@@ -103,7 +138,13 @@ function App() {
               <CircleMarker
                 key={index}
                 center={[latitude, longitude]}
-                radius={6}
+                radius={markerRadius}
+                pathOptions={{
+                  color: markerColor,
+                  fillColor: markerColor,
+                  fillOpacity: 0.75,
+                  weight: 1,
+                }}
               >
                 <Popup>
                   <div className="min-w-55">
@@ -164,13 +205,39 @@ function App() {
                     <p>
                       <strong>Andmete seis:</strong> {freshness}
                     </p>
-                    
+
                   </div>
                 </Popup>
               </CircleMarker>
             );
           })}
         </MapContainer>
+
+        <div className="absolute bottom-5 left-5 z-[1000] rounded-lg bg-white p-4 shadow-lg">
+          <h3 className="mb-2 font-semibold">
+            Liikluskoormus
+          </h3>
+
+          <div className="flex items-center gap-2 text-sm">
+            <span className="h-3 w-3 rounded-full bg-green-500" />
+            Madal
+          </div>
+
+          <div className="mt-1 flex items-center gap-2 text-sm">
+            <span className="h-3 w-3 rounded-full bg-amber-500" />
+            Keskmine
+          </div>
+
+          <div className="mt-1 flex items-center gap-2 text-sm">
+            <span className="h-3 w-3 rounded-full bg-red-500" />
+            Kõrge
+          </div>
+
+          <p className="mt-2 max-w-44 text-xs text-slate-500">
+            Markeri suurus näitab suhtelist liiklusvoogu.
+          </p>
+        </div>
+
       </main>
     </div>
   );

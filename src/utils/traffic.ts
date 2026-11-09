@@ -73,3 +73,77 @@ export function getFreshnessLabel(ageMinutes: number | null) {
 
   return "Aegunud";
 }
+
+export type TrafficLevel = "low" | "medium" | "high";
+
+export type TrafficThresholds = {
+  medium: number;
+  high: number;
+};
+
+export function calculateTrafficThresholds(
+  values: number[]
+): TrafficThresholds {
+  const sorted = values
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+
+  if (sorted.length === 0) {
+    return {
+      medium: 0,
+      high: 0,
+    };
+  }
+
+  const getPercentile = (percentage: number) => {
+    const index = Math.floor(
+      (sorted.length - 1) * percentage
+    );
+
+    return sorted[index];
+  };
+
+  return {
+    medium: getPercentile(0.33),
+    high: getPercentile(0.66),
+  };
+}
+
+export function getTrafficLevel(
+  totalTraffic: number,
+  thresholds: TrafficThresholds
+): TrafficLevel {
+  if (totalTraffic <= thresholds.medium) {
+    return "low";
+  }
+
+  if (totalTraffic <= thresholds.high) {
+    return "medium";
+  }
+
+  return "high";
+}
+
+export function getTrafficColor(level: TrafficLevel) {
+  switch (level) {
+    case "low":
+      return "#22c55e";
+
+    case "medium":
+      return "#f59e0b";
+
+    case "high":
+      return "#ef4444";
+  }
+}
+
+export function getTrafficRadius(
+  totalTraffic: number,
+  maxTraffic: number
+) {
+  if (maxTraffic <= 0) {
+    return 5;
+  }
+
+  return 5 + Math.sqrt(totalTraffic / maxTraffic) * 10;
+}
