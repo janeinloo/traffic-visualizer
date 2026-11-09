@@ -5,6 +5,15 @@ import {
   getTotalTraffic,
 } from "../utils/traffic";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
 type TrafficComparisonProps = {
   detectors: TrafficFeature[];
   onClear: () => void;
@@ -17,6 +26,14 @@ function TrafficComparison({
   if (detectors.length < 2) {
     return null;
   }
+
+  const comparisonChartData = detectors.map((detector) => ({
+    name: detector.properties.site_name ?? "Liiklusloendur",
+    traffic: getTotalTraffic(
+      detector.properties.total_flow_forwards,
+      detector.properties.total_flow_backwards
+    ),
+  }));
 
   return (
     <div className="absolute bottom-4 left-1/2 z-[1000] w-[min(560px,90%)] -translate-x-1/2 rounded-xl bg-white p-5 shadow-lg">
@@ -96,8 +113,38 @@ function TrafficComparison({
                 <strong>{heavyPercentage}%</strong>
               </p>
             </div>
+            
           );
         })}
+      </div>
+      <div className="mt-5">
+        <p className="mb-2 font-semibold">
+          Liiklusvoo võrdlus
+        </p>
+
+        <div className="h-44 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={comparisonChartData}>
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+              />
+
+              <YAxis
+                tick={{ fontSize: 11 }}
+              />
+
+              <Tooltip />
+
+              <Bar
+                dataKey="traffic"
+                name="Liiklusvoog"
+                fill="#3b82f6"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
   );
