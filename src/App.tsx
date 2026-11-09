@@ -7,56 +7,19 @@ import {
 } from "react-leaflet";
 import { getTrafficDetectors } from "./services/trafficApi";
 import proj4 from "proj4";
+import type { TrafficFeature } from "./types/traffic";
+import {
+  formatMeasurementTime,
+  formatSpeed,
+  getHeavyTrafficPercentage,
+  getTotalTraffic,
+} from "./utils/traffic";
 
 proj4.defs(
   "EPSG:3301",
   "+proj=lcc +lat_1=59.33333333333334 +lat_2=58 +lat_0=57.51755393055556 +lon_0=24 +x_0=500000 +y_0=6375000 +ellps=GRS80 +units=m +no_defs"
 );
 
-type TrafficFeature = {
-  type: "Feature";
-  properties: {
-    traffic_detector_id?: string;
-    site_name?: string;
-    road_name?: string;
-    measurement_time?: string | number;
-    total_flow_forwards?: number;
-    total_flow_backwards?: number;
-    heavy_traffic_forwards?: number;
-    heavy_traffic_backwards?: number;
-    average_speed_forwards?: number;
-    average_speed_backwards?: number;
-  };
-  geometry: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-};
-
-function formatSpeed(speed?: number) {
-  if (speed == null) {
-    return "—";
-  }
-
-  return `${Math.round(speed)} km/h`;
-}
-
-function formatMeasurementTime(value?: string | number) {
-  if (value == null) {
-    return "—";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("et-EE", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
 
 function App() {
   const [trafficData, setTrafficData] = useState<TrafficFeature[]>([]);
@@ -129,6 +92,12 @@ function App() {
               totalTraffic > 0
                 ? Math.round((totalHeavyTraffic / totalTraffic) * 100)
                 : 0;
+            
+            const ageMinutes = getDataAge(
+              detector.properties.measurement_time
+            );
+
+            const freshness = getFreshnessLabel(ageMinutes);
 
             return (
               <CircleMarker
@@ -191,6 +160,11 @@ function App() {
                         detector.properties.measurement_time
                       )}
                     </p>
+
+                    <p>
+                      <strong>Andmete seis:</strong> {freshness}
+                    </p>
+                    
                   </div>
                 </Popup>
               </CircleMarker>
