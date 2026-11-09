@@ -20,6 +20,7 @@ import {
   getTrafficLevel,
   getTrafficRadius,
 } from "./utils/traffic";
+import type { TrafficLevel } from "./utils/traffic";
 
 proj4.defs(
   "EPSG:3301",
@@ -29,6 +30,8 @@ proj4.defs(
 
 function App() {
   const [trafficData, setTrafficData] = useState<TrafficFeature[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedLevel, setSelectedLevel] = useState<"all" | TrafficLevel>("all");
 
   const trafficTotals = useMemo(() => {
     return trafficData.map((detector) =>
@@ -42,6 +45,40 @@ function App() {
   const trafficThresholds = useMemo(() => {
     return calculateTrafficThresholds(trafficTotals);
   }, [trafficTotals]);
+
+  const filteredTrafficData = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return trafficData.filter((detector) => {
+      const { site_name, road_name } = detector.properties;
+
+      const matchesSearch =
+        search === "" ||
+        site_name?.toLowerCase().includes(search) ||
+        road_name?.toLowerCase().includes(search);
+
+      const totalTraffic = getTotalTraffic(
+        detector.properties.total_flow_forwards,
+        detector.properties.total_flow_backwards
+      );
+
+      const trafficLevel = getTrafficLevel(
+        totalTraffic,
+        trafficThresholds
+      );
+
+      const matchesLevel =
+        selectedLevel === "all" ||
+        trafficLevel === selectedLevel;
+
+      return matchesSearch && matchesLevel;
+    });
+  }, [
+    trafficData,
+    searchTerm,
+    selectedLevel,
+    trafficThresholds,
+  ]);
 
   const maxTraffic = useMemo(() => {
     return Math.max(...trafficTotals, 0);
@@ -69,10 +106,37 @@ function App() {
 
   return (
     <div className="h-screen w-screen bg-slate-100">
-      <header className="flex h-16 items-center border-b border-slate-200 bg-white px-6">
-        <h1 className="text-xl font-semibold text-slate-800">
+      <header className="flex h-16 items-center gap-4 border-b border-slate-200 bg-white px-6">
+        <h1 className="mr-auto text-xl font-semibold text-slate-800">
           Traffic Visualizer
         </h1>
+
+        <input
+          type="text"
+          placeholder="Otsi teed või punkti..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+          className="w-64 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+        />
+
+        <select
+          value={selectedLevel}
+          onChange={(event) =>
+            setSelectedLevel(
+              event.target.value as "all" | TrafficLevel
+            )
+          }
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+        >
+          <option value="all">Kõik koormused</option>
+          <option value="low">Madal</option>
+          <option value="medium">Keskmine</option>
+          <option value="high">Kõrge</option>
+        </select>
+
+        <span className="text-sm text-slate-500">
+          {filteredTrafficData.length} punkti
+        </span>
       </header>
 
       <main className="relative h-[calc(100vh-4rem)]">
@@ -87,7 +151,7 @@ function App() {
           />
 
 
-          {trafficData.map((detector, index) => {
+          {filteredTrafficData.map((detector, index) => {
             const [x, y] = detector.geometry.coordinates;
 
             const [longitude, latitude] = proj4(
