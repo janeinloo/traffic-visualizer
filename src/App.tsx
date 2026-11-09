@@ -16,10 +16,14 @@ proj4.defs(
 type TrafficFeature = {
   type: "Feature";
   properties: {
+    traffic_detector_id?: string;
     site_name?: string;
     road_name?: string;
+    measurement_time?: string | number;
     total_flow_forwards?: number;
     total_flow_backwards?: number;
+    heavy_traffic_forwards?: number;
+    heavy_traffic_backwards?: number;
     average_speed_forwards?: number;
     average_speed_backwards?: number;
   };
@@ -28,6 +32,31 @@ type TrafficFeature = {
     coordinates: [number, number];
   };
 };
+
+function formatSpeed(speed?: number) {
+  if (speed == null) {
+    return "—";
+  }
+
+  return `${Math.round(speed)} km/h`;
+}
+
+function formatMeasurementTime(value?: string | number) {
+  if (value == null) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("et-EE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
 
 function App() {
   const [trafficData, setTrafficData] = useState<TrafficFeature[]>([]);
@@ -81,6 +110,26 @@ function App() {
               [x, y]
             );
 
+            const {
+              total_flow_forwards,
+              total_flow_backwards,
+              heavy_traffic_forwards,
+              heavy_traffic_backwards,
+            } = detector.properties;
+
+            const totalTraffic =
+              (total_flow_forwards ?? 0) +
+              (total_flow_backwards ?? 0);
+
+            const totalHeavyTraffic =
+              (heavy_traffic_forwards ?? 0) +
+              (heavy_traffic_backwards ?? 0);
+
+            const heavyTrafficPercentage =
+              totalTraffic > 0
+                ? Math.round((totalHeavyTraffic / totalTraffic) * 100)
+                : 0;
+
             return (
               <CircleMarker
                 key={index}
@@ -88,34 +137,59 @@ function App() {
                 radius={6}
               >
                 <Popup>
-                  <div>
-                    <strong>
-                      {detector.properties.site_name ??
-                        "Liiklusloendur"}
-                    </strong>
+                  <div className="min-w-55">
+                    <h2 className="mb-1 text-base font-bold">
+                      {detector.properties.site_name ?? "Liiklusloendur"}
+                    </h2>
 
-                    <p>
-                      {detector.properties.road_name ??
-                        "Tee nimi puudub"}
+                    <p className="mb-3 text-sm">
+                      {detector.properties.road_name ?? "Tee nimi puudub"}
                     </p>
 
                     <p>
-                      Liiklus edasi:{" "}
-                      {detector.properties.total_flow_forwards ??
-                        "—"}
+                      <strong>Liiklus kokku:</strong> {totalTraffic}
                     </p>
 
                     <p>
-                      Liiklus tagasi:{" "}
-                      {detector.properties.total_flow_backwards ??
-                        "—"}
+                      Suund 1: {total_flow_forwards ?? "—"}
                     </p>
 
                     <p>
-                      Keskmine kiirus edasi:{" "}
-                      {detector.properties
-                        .average_speed_forwards ?? "—"}{" "}
-                      km/h
+                      Suund 2: {total_flow_backwards ?? "—"}
+                    </p>
+
+                    <hr className="my-2" />
+
+                    <p>
+                      <strong>Keskmine kiirus</strong>
+                    </p>
+
+                    <p>
+                      Suund 1:{" "}
+                      {formatSpeed(
+                        detector.properties.average_speed_forwards
+                      )}
+                    </p>
+
+                    <p>
+                      Suund 2:{" "}
+                      {formatSpeed(
+                        detector.properties.average_speed_backwards
+                      )}
+                    </p>
+
+                    <hr className="my-2" />
+
+                    <p>
+                      <strong>Raskeliiklus:</strong>{" "}
+                      {totalHeavyTraffic} ({heavyTrafficPercentage}%)
+                    </p>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      Mõõtmise aeg:{" "}
+                      {formatMeasurementTime(
+                        detector.properties.measurement_time
+                      )}
                     </p>
                   </div>
                 </Popup>
