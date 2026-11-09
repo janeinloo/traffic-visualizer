@@ -22,6 +22,7 @@ import {
 } from "./utils/traffic";
 import type { TrafficLevel } from "./utils/traffic";
 import TrafficDetails from "./components/TrafficDetails";
+import TrafficComparison from "./components/TrafficComparison";
 
 proj4.defs(
   "EPSG:3301",
@@ -34,6 +35,27 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<"all" | TrafficLevel>("all");
   const [selectedDetector, setSelectedDetector] = useState<TrafficFeature | null>(null);
+  const [comparisonDetectors, setComparisonDetectors] = useState<TrafficFeature[]>([]);
+
+  function addToComparison(detector: TrafficFeature) {
+  setComparisonDetectors((current) => {
+    if (
+      current.some(
+        (item) =>
+          item.properties.traffic_detector_id ===
+          detector.properties.traffic_detector_id
+      )
+    ) {
+      return current;
+    }
+
+    if (current.length >= 2) {
+      return [current[1], detector];
+    }
+
+    return [...current, detector];
+  });
+}
 
   const trafficTotals = useMemo(() => {
     return trafficData.map((detector) =>
@@ -269,8 +291,14 @@ function App() {
             <TrafficDetails
               detector={selectedDetector}
               onClose={() => setSelectedDetector(null)}
+              onAddToComparison={addToComparison}
             />
           )}
+
+          <TrafficComparison
+            detectors={comparisonDetectors}
+            onClear={() => setComparisonDetectors([])}
+          />
 
       </main>
     </div>

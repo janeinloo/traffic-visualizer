@@ -20,11 +20,13 @@ import {
 type TrafficDetailsProps = {
   detector: TrafficFeature;
   onClose: () => void;
+  onAddToComparison: (detector: TrafficFeature) => void;
 };
 
 function TrafficDetails({
   detector,
   onClose,
+  onAddToComparison,
 }: TrafficDetailsProps) {
   const {
     total_flow_forwards,
@@ -142,6 +144,13 @@ function TrafficDetails({
           </p>
         </div>
       </div>
+
+      <button
+        onClick={() => onAddToComparison(detector)}
+        className="mt-4 w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+      >
+        Lisa võrdlusse
+      </button>
     </aside>
   );
 }
