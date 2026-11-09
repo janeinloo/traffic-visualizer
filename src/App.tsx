@@ -21,6 +21,7 @@ import {
   getTrafficRadius,
 } from "./utils/traffic";
 import type { TrafficLevel } from "./utils/traffic";
+import TrafficDetails from "./components/TrafficDetails";
 
 proj4.defs(
   "EPSG:3301",
@@ -32,6 +33,7 @@ function App() {
   const [trafficData, setTrafficData] = useState<TrafficFeature[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<"all" | TrafficLevel>("all");
+  const [selectedDetector, setSelectedDetector] = useState<TrafficFeature | null>(null);
 
   const trafficTotals = useMemo(() => {
     return trafficData.map((detector) =>
@@ -209,67 +211,28 @@ function App() {
                   fillOpacity: 0.75,
                   weight: 1,
                 }}
+                eventHandlers={{
+                  click: () => setSelectedDetector(detector),
+                }}
               >
                 <Popup>
-                  <div className="min-w-55">
-                    <h2 className="mb-1 text-base font-bold">
+                  <div>
+                    <strong>
                       {detector.properties.site_name ?? "Liiklusloendur"}
-                    </h2>
+                    </strong>
 
-                    <p className="mb-3 text-sm">
+                    <p>
                       {detector.properties.road_name ?? "Tee nimi puudub"}
                     </p>
 
-                    <p>
-                      <strong>Liiklus kokku:</strong> {totalTraffic}
-                    </p>
+                    <p>Liiklus kokku: {totalTraffic}</p>
 
-                    <p>
-                      Suund 1: {total_flow_forwards ?? "—"}
-                    </p>
-
-                    <p>
-                      Suund 2: {total_flow_backwards ?? "—"}
-                    </p>
-
-                    <hr className="my-2" />
-
-                    <p>
-                      <strong>Keskmine kiirus</strong>
-                    </p>
-
-                    <p>
-                      Suund 1:{" "}
-                      {formatSpeed(
-                        detector.properties.average_speed_forwards
-                      )}
-                    </p>
-
-                    <p>
-                      Suund 2:{" "}
-                      {formatSpeed(
-                        detector.properties.average_speed_backwards
-                      )}
-                    </p>
-
-                    <hr className="my-2" />
-
-                    <p>
-                      <strong>Raskeliiklus:</strong>{" "}
-                      {totalHeavyTraffic} ({heavyTrafficPercentage}%)
-                    </p>
-
-                    <p className="mt-2 text-xs text-slate-500">
-                      Mõõtmise aeg:{" "}
-                      {formatMeasurementTime(
-                        detector.properties.measurement_time
-                      )}
-                    </p>
-
-                    <p>
-                      <strong>Andmete seis:</strong> {freshness}
-                    </p>
-
+                    <button
+                      onClick={() => setSelectedDetector(detector)}
+                      className="mt-2 font-medium text-blue-600"
+                    >
+                      Vaata detaile
+                    </button>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -301,6 +264,13 @@ function App() {
             Markeri suurus näitab suhtelist liiklusvoogu.
           </p>
         </div>
+
+          {selectedDetector && (
+            <TrafficDetails
+              detector={selectedDetector}
+              onClose={() => setSelectedDetector(null)}
+            />
+          )}
 
       </main>
     </div>
