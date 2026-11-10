@@ -36,7 +36,7 @@ function TrafficComparison({
   }));
 
   return (
-    <div className="absolute bottom-4 left-1/2 z-[1000] w-[min(560px,90%)] -translate-x-1/2 rounded-xl bg-white p-5 shadow-lg">
+    <div className="absolute bottom-4 left-1/2 z-[1000] max-h-[60%] w-[calc(100%-2rem)] -translate-x-1/2 overflow-y-auto rounded-xl bg-white p-4 shadow-lg sm:w-[560px] sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold">Võrdlus</h2>
 
@@ -48,7 +48,7 @@ function TrafficComparison({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {detectors.map((detector) => {
           const {
             total_flow_forwards,

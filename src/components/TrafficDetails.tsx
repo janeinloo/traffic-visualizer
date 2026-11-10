@@ -68,7 +68,7 @@ function TrafficDetails({
   const freshness = getFreshnessLabel(ageMinutes);
 
   return (
-    <aside className="absolute right-4 top-4 z-[1000] w-80 rounded-xl bg-white p-5 shadow-lg">
+    <aside className="absolute left-4 right-4 top-4 z-[1000] max-h-[calc(100%-2rem)] overflow-y-auto rounded-xl bg-white p-5 shadow-lg md:left-auto md:w-80">
       <button
         onClick={onClose}
         className="float-right text-slate-500 hover:text-slate-900"
