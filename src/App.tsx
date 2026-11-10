@@ -23,6 +23,7 @@ import {
 import type { TrafficLevel } from "./utils/traffic";
 import TrafficDetails from "./components/TrafficDetails";
 import TrafficComparison from "./components/TrafficComparison";
+import TrafficStats from "./components/TrafficStats";
 
 proj4.defs(
   "EPSG:3301",
@@ -38,6 +39,7 @@ function App() {
   const [comparisonDetectors, setComparisonDetectors] = useState<TrafficFeature[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showStats, setShowStats] = useState(false);
 
 
   useEffect(() => {
@@ -155,7 +157,7 @@ function App() {
 }, []);
 
   return (
-    <div className="h-screen w-screen bg-slate-100">
+    <div className="flex h-screen w-screen flex-col bg-slate-100">
       <header className="flex min-h-16 flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 md:px-6">
         <h1 className="mr-auto text-xl font-semibold text-slate-800">
           Traffic Visualizer
@@ -168,6 +170,13 @@ function App() {
           onChange={(event) => setSearchTerm(event.target.value)}
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500 sm:w-64"
         />
+
+        <button
+          onClick={() => setShowStats((current) => !current)}
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+        >
+          Statistika
+        </button>
 
         <select
           value={selectedLevel}
@@ -189,7 +198,7 @@ function App() {
         </span>
       </header>
 
-      <main className="flex h-screen w-screen flex-col bg-slate-100">
+      <main className="relative min-h-0 flex-1">
         <MapContainer
           center={[58.6, 25.0]}
           zoom={7}
@@ -334,6 +343,14 @@ function App() {
               detector={selectedDetector}
               onClose={() => setSelectedDetector(null)}
               onAddToComparison={addToComparison}
+            />
+          )}
+
+          {showStats && (
+            <TrafficStats
+              detectors={filteredTrafficData}
+              thresholds={trafficThresholds}
+              onClose={() => setShowStats(false)}
             />
           )}
 
