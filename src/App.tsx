@@ -36,6 +36,32 @@ function App() {
   const [selectedLevel, setSelectedLevel] = useState<"all" | TrafficLevel>("all");
   const [selectedDetector, setSelectedDetector] = useState<TrafficFeature | null>(null);
   const [comparisonDetectors, setComparisonDetectors] = useState<TrafficFeature[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    async function loadTrafficData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const data = await getTrafficDetectors();
+
+        setTrafficData(data.features);
+      } catch (error) {
+        console.error("API error:", error);
+
+        setError(
+          "Liiklusandmete laadimine ebaõnnestus."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTrafficData();
+  }, []);
 
   function addToComparison(detector: TrafficFeature) {
   setComparisonDetectors((current) => {
@@ -261,6 +287,22 @@ function App() {
             );
           })}
         </MapContainer>
+
+        {isLoading && (
+          <div className="absolute inset-0 z-[2000] flex items-center justify-center bg-white/70">
+            <div className="rounded-lg bg-white px-6 py-4 shadow-lg">
+              <p className="font-medium text-slate-700">
+                Liiklusandmete laadimine...
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute left-1/2 top-4 z-[2000] -translate-x-1/2 rounded-lg bg-red-50 px-5 py-3 text-sm text-red-700 shadow-lg">
+            {error}
+          </div>
+        )}
 
         <div className="absolute bottom-5 left-5 z-[1000] rounded-lg bg-white p-4 shadow-lg">
           <h3 className="mb-2 font-semibold">
