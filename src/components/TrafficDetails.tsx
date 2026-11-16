@@ -73,6 +73,10 @@ function TrafficDetails({
         {detector.properties.site_name}
       </h2>
 
+      <p className="mt-1 text-xs font-medium text-emerald-600">
+        DATEX reaalaja liiklusandmed
+      </p>
+
       <div className="mt-4 space-y-4 text-sm">
         <div>
           <p className="font-semibold">
@@ -154,7 +158,7 @@ function TrafficDetails({
 
         <div>
           <p className="font-semibold">
-            Andmete seis
+            Andmete värskus
           </p>
 
           <p>{freshness}</p>

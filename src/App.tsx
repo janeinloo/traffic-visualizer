@@ -15,6 +15,7 @@ import {
   getTrafficColor,
   getTrafficLevel,
   getTrafficRadius,
+  formatMeasurementTime,
 } from "./utils/traffic";
 
 import type { TrafficLevel } from "./utils/traffic";
@@ -39,6 +40,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
 
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadTrafficData() {
       try {
@@ -46,6 +49,10 @@ function App() {
         setError(null);
 
         const datexMap = await fetchTrafficMap();
+
+        setLastUpdated(
+          datexMap.trafficPublicationTime
+        );
 
         const activePoints = datexMap.points.filter(
           (point) => point.hasTrafficData
@@ -199,11 +206,10 @@ function App() {
         />
 
         <button
-          onClick={() =>
-            setShowStats(
-              (current) => !current
-            )
-          }
+          onClick={() => {
+            setShowStats((current) => !current);
+            setSelectedDetector(null);
+          }}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
         >
           Statistika
@@ -237,9 +243,18 @@ function App() {
           </option>
         </select>
 
-        <span className="text-sm text-slate-500">
-          {filteredTrafficData.length} punkti
-        </span>
+        <div className="text-right text-sm text-slate-500">
+          <p>
+            {filteredTrafficData.length} punkti
+          </p>
+
+          {lastUpdated && (
+            <p className="text-xs">
+              Viimati uuendatud:{" "}
+              {formatMeasurementTime(lastUpdated)}
+            </p>
+          )}
+        </div>
       </header>
 
       <main className="relative min-h-0 flex-1">
@@ -308,10 +323,10 @@ function App() {
                     weight: 1,
                   }}
                   eventHandlers={{
-                    click: () =>
-                      setSelectedDetector(
-                        detector
-                      ),
+                    click: () => {
+                      setSelectedDetector(detector);
+                      setShowStats(false);
+                    },
                   }}
                 >
                   <Popup>

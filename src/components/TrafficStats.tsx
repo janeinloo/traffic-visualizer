@@ -255,7 +255,7 @@ function TrafficStats({
           TOP 5 liiklusvooga punkti
         </p>
 
-        <div className="h-56 w-full">
+        <div className="h-64 w-full">
           <ResponsiveContainer
             width="100%"
             height="100%"
@@ -266,6 +266,8 @@ function TrafficStats({
               <XAxis
                 dataKey="name"
                 tick={{ fontSize: 10 }}
+                textAnchor="middle"
+                height={55}
               />
 
               <YAxis
