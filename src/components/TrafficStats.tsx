@@ -5,7 +5,6 @@ import type {
 } from "../utils/traffic";
 
 import {
-  getHeavyTrafficPercentage,
   getTotalTraffic,
   getTrafficLevel,
 } from "../utils/traffic";
@@ -34,7 +33,7 @@ function TrafficStats({
     return null;
   }
 
-  // Kõikide punktide liiklusvood
+  // Kõikide mõõtepunktide liiklusvood
   const totals = detectors.map((detector) =>
     getTotalTraffic(
       detector.properties.total_flow_forwards,
@@ -51,7 +50,7 @@ function TrafficStats({
     totalTraffic / detectors.length
   );
 
-  // Keskmine kiirus
+  // Kõik olemasolevad kiiruse mõõtmised
   const speeds = detectors.flatMap((detector) => {
     const values = [
       detector.properties.average_speed_forwards,
@@ -60,32 +59,38 @@ function TrafficStats({
 
     return values.filter(
       (speed): speed is number =>
-        speed != null && Number.isFinite(speed) && speed > 0
+        typeof speed === "number" &&
+        Number.isFinite(speed) &&
+        speed > 0
     );
   });
 
   const averageSpeed =
     speeds.length > 0
       ? Math.round(
-          speeds.reduce((sum, speed) => sum + speed, 0) /
-            speeds.length
+          speeds.reduce(
+            (sum, speed) => sum + speed,
+            0
+          ) / speeds.length
         )
-      : 0;
+      : null;
 
-  // Kõige suurema liiklusvooga punkt
-  const sortedByTraffic = [...detectors].sort((a, b) => {
-    const trafficA = getTotalTraffic(
-      a.properties.total_flow_forwards,
-      a.properties.total_flow_backwards
-    );
+  // Punktid liiklusvoo järgi
+  const sortedByTraffic = [...detectors].sort(
+    (a, b) => {
+      const trafficA = getTotalTraffic(
+        a.properties.total_flow_forwards,
+        a.properties.total_flow_backwards
+      );
 
-    const trafficB = getTotalTraffic(
-      b.properties.total_flow_forwards,
-      b.properties.total_flow_backwards
-    );
+      const trafficB = getTotalTraffic(
+        b.properties.total_flow_forwards,
+        b.properties.total_flow_backwards
+      );
 
-    return trafficB - trafficA;
-  });
+      return trafficB - trafficA;
+    }
+  );
 
   const busiestDetector = sortedByTraffic[0];
 
@@ -94,47 +99,24 @@ function TrafficStats({
     busiestDetector.properties.total_flow_backwards
   );
 
-  // TOP 5
+  // TOP 5 liiklusvooga punkti
   const topFive = sortedByTraffic.slice(0, 5);
 
-  const topFiveChartData = topFive.map((detector) => ({
-    name:
-      detector.properties.site_name ?? "Liiklusloendur",
-    traffic: getTotalTraffic(
-      detector.properties.total_flow_forwards,
-      detector.properties.total_flow_backwards
-    ),
-  }));
-
-  // Suurima raskeliikluse osakaaluga punkt
-  const heavyTrafficStats = detectors.map((detector) => {
-    const total = getTotalTraffic(
-      detector.properties.total_flow_forwards,
-      detector.properties.total_flow_backwards
-    );
-
-    const heavy =
-      (detector.properties.heavy_traffic_forwards ?? 0) +
-      (detector.properties.heavy_traffic_backwards ?? 0);
-
-    return {
-      detector,
-      percentage: getHeavyTrafficPercentage(
-        total,
-        heavy
+  const topFiveChartData = topFive.map(
+    (detector) => ({
+      name: detector.properties.site_name,
+      traffic: getTotalTraffic(
+        detector.properties.total_flow_forwards,
+        detector.properties.total_flow_backwards
       ),
-    };
-  });
-
-  const highestHeavyTraffic = heavyTrafficStats.reduce(
-    (highest, current) =>
-      current.percentage > highest.percentage
-        ? current
-        : highest
+    })
   );
 
   // Koormustasemete arv
-  const levelCounts: Record<TrafficLevel, number> = {
+  const levelCounts: Record<
+    TrafficLevel,
+    number
+  > = {
     low: 0,
     medium: 0,
     high: 0,
@@ -172,8 +154,9 @@ function TrafficStats({
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg bg-slate-50 p-3">
           <p className="text-xs text-slate-500">
-            Loenduspunkte
+            Mõõtepunkte
           </p>
+
           <p className="text-xl font-bold">
             {detectors.length}
           </p>
@@ -183,6 +166,7 @@ function TrafficStats({
           <p className="text-xs text-slate-500">
             Keskmine liiklusvoog
           </p>
+
           <p className="text-xl font-bold">
             {averageTraffic}
           </p>
@@ -192,8 +176,11 @@ function TrafficStats({
           <p className="text-xs text-slate-500">
             Keskmine kiirus
           </p>
+
           <p className="text-xl font-bold">
-            {averageSpeed} km/h
+            {averageSpeed != null
+              ? `${averageSpeed} km/h`
+              : "—"}
           </p>
         </div>
 
@@ -201,6 +188,7 @@ function TrafficStats({
           <p className="text-xs text-slate-500">
             Kõrge koormusega
           </p>
+
           <p className="text-xl font-bold">
             {levelCounts.high}
           </p>
@@ -217,21 +205,30 @@ function TrafficStats({
             <p className="text-green-600">
               Madal
             </p>
-            <strong>{levelCounts.low}</strong>
+
+            <strong>
+              {levelCounts.low}
+            </strong>
           </div>
 
           <div>
             <p className="text-amber-600">
               Keskmine
             </p>
-            <strong>{levelCounts.medium}</strong>
+
+            <strong>
+              {levelCounts.medium}
+            </strong>
           </div>
 
           <div>
             <p className="text-red-600">
               Kõrge
             </p>
-            <strong>{levelCounts.high}</strong>
+
+            <strong>
+              {levelCounts.high}
+            </strong>
           </div>
         </div>
       </div>
@@ -242,27 +239,14 @@ function TrafficStats({
         </p>
 
         <p>
-          {busiestDetector.properties.site_name ??
-            "Liiklusloendur"}
+          {
+            busiestDetector.properties
+              .site_name
+          }
         </p>
 
         <p className="text-sm text-slate-500">
-          {busiestTraffic}
-        </p>
-      </div>
-
-      <div className="mt-4 border-t border-slate-200 pt-4">
-        <p className="font-semibold">
-          Suurim raskeliikluse osakaal
-        </p>
-
-        <p>
-          {highestHeavyTraffic.detector.properties
-            .site_name ?? "Liiklusloendur"}
-        </p>
-
-        <p className="text-sm text-slate-500">
-          {highestHeavyTraffic.percentage}%
+          Liiklusvoog: {busiestTraffic}
         </p>
       </div>
 
@@ -276,7 +260,9 @@ function TrafficStats({
             width="100%"
             height="100%"
           >
-            <BarChart data={topFiveChartData}>
+            <BarChart
+              data={topFiveChartData}
+            >
               <XAxis
                 dataKey="name"
                 tick={{ fontSize: 10 }}

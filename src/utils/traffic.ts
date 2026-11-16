@@ -6,8 +6,8 @@ export function formatSpeed(speed?: number) {
   return `${Math.round(speed)} km/h`;
 }
 
-export function formatMeasurementTime(value?: string | number) {
-  if (value == null) {
+export function formatMeasurementTime(value?: string) {
+  if (!value) {
     return "—";
   }
 
@@ -30,19 +30,9 @@ export function getTotalTraffic(
   return (forwards ?? 0) + (backwards ?? 0);
 }
 
-export function getHeavyTrafficPercentage(
-  totalTraffic: number,
-  heavyTraffic: number
-) {
-  if (totalTraffic === 0) {
-    return 0;
-  }
 
-  return Math.round((heavyTraffic / totalTraffic) * 100);
-}
-
-export function getDataAge(value?: string | number) {
-  if (value == null) {
+export function getDataAge(value?: string) {
+  if (!value) {
     return null;
   }
 
@@ -55,10 +45,14 @@ export function getDataAge(value?: string | number) {
   const differenceMs =
     Date.now() - measurementDate.getTime();
 
-  return Math.floor(differenceMs / 1000 / 60);
+  return Math.floor(
+    differenceMs / 1000 / 60
+  );
 }
 
-export function getFreshnessLabel(ageMinutes: number | null) {
+export function getFreshnessLabel(
+  ageMinutes: number | null
+) {
   if (ageMinutes == null) {
     return "Teadmata";
   }
@@ -74,7 +68,10 @@ export function getFreshnessLabel(ageMinutes: number | null) {
   return "Aegunud";
 }
 
-export type TrafficLevel = "low" | "medium" | "high";
+export type TrafficLevel =
+  | "low"
+  | "medium"
+  | "high";
 
 export type TrafficThresholds = {
   medium: number;
@@ -85,7 +82,9 @@ export function calculateTrafficThresholds(
   values: number[]
 ): TrafficThresholds {
   const sorted = values
-    .filter((value) => Number.isFinite(value))
+    .filter((value) =>
+      Number.isFinite(value)
+    )
     .sort((a, b) => a - b);
 
   if (sorted.length === 0) {
@@ -95,9 +94,12 @@ export function calculateTrafficThresholds(
     };
   }
 
-  const getPercentile = (percentage: number) => {
+  const getPercentile = (
+    percentage: number
+  ) => {
     const index = Math.floor(
-      (sorted.length - 1) * percentage
+      (sorted.length - 1) *
+        percentage
     );
 
     return sorted[index];
@@ -113,18 +115,24 @@ export function getTrafficLevel(
   totalTraffic: number,
   thresholds: TrafficThresholds
 ): TrafficLevel {
-  if (totalTraffic <= thresholds.medium) {
+  if (
+    totalTraffic <= thresholds.medium
+  ) {
     return "low";
   }
 
-  if (totalTraffic <= thresholds.high) {
+  if (
+    totalTraffic <= thresholds.high
+  ) {
     return "medium";
   }
 
   return "high";
 }
 
-export function getTrafficColor(level: TrafficLevel) {
+export function getTrafficColor(
+  level: TrafficLevel
+) {
   switch (level) {
     case "low":
       return "#22c55e";
@@ -145,5 +153,11 @@ export function getTrafficRadius(
     return 5;
   }
 
-  return 5 + Math.sqrt(totalTraffic / maxTraffic) * 10;
+  return (
+    5 +
+    Math.sqrt(
+      totalTraffic / maxTraffic
+    ) *
+      10
+  );
 }

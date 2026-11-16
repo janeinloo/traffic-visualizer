@@ -1,19 +1,42 @@
-const API_URL =
-  "https://tarktee.transpordiamet.ee/tarktee/rest/services/traffic_detectors/MapServer/0/query";
+export type DatexDirection = {
+  siteReferenceId: string;
+  direction: number | null;
+  lanes: number | null;
+  measurementTime: string | null;
+  speed: number | null;
+  flow: number | null;
+  measurementPeriodSeconds: number | null;
+};
 
-export async function getTrafficDetectors() {
-  const params = new URLSearchParams({
-    where: "1=1",
-    outFields: "*",
-    returnGeometry: "true",
-    outSR: "4326",
-    f: "geojson",
-  });
+export type DatexTrafficPoint = {
+  id: string;
+  name: string | null;
+  latitude: number;
+  longitude: number;
+  directions: Record<string, DatexDirection>;
+  hasTrafficData: boolean;
+  activeDirectionCount: number;
+  totalFlow: number | null;
+  averageSpeed: number | null;
+  latestMeasurementTime: string | null;
+};
 
-  const response = await fetch(`${API_URL}?${params.toString()}`);
+export type DatexTrafficMapResponse = {
+  sitesPublicationTime: string | null;
+  trafficPublicationTime: string | null;
+  siteCount: number;
+  activeSiteCount: number;
+  measurementCount: number;
+  points: DatexTrafficPoint[];
+};
+
+export async function fetchTrafficMap(): Promise<DatexTrafficMapResponse> {
+  const response = await fetch("/api/traffic-map");
 
   if (!response.ok) {
-    throw new Error("Liiklusandmete laadimine ebaõnnestus");
+    throw new Error(
+      "DATEX kaardiandmete laadimine ebaõnnestus."
+    );
   }
 
   return response.json();
