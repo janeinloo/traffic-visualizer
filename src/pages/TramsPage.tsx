@@ -26,6 +26,9 @@ function TramsPage() {
   const [trams, setTrams] =
     useState<Tram[]>([]);
 
+  const [walkMinutes, setWalkMinutes] =
+  useState(5);
+
   const [
     departuresData,
     setDeparturesData,
@@ -167,6 +170,28 @@ function TramsPage() {
       departuresData,
       selectedLine,
     ]);
+
+  const nextReachableDeparture =
+  useMemo(() => {
+    return filteredDepartures.find(
+      (departure) =>
+        departure.minutesUntil >=
+        walkMinutes
+    );
+  }, [
+    filteredDepartures,
+    walkMinutes,
+  ]);
+
+const leaveInMinutes =
+  nextReachableDeparture
+    ? nextReachableDeparture.minutesUntil -
+      walkMinutes
+    : null;
+
+const shouldLeaveNow =
+  leaveInMinutes != null &&
+  leaveInMinutes <= 1;
 
   return (
     <div className="flex h-screen w-screen flex-col bg-slate-100">
@@ -359,6 +384,117 @@ function TramsPage() {
               Tallinna Ülikool
             </p>
           </div>
+
+          <div className="mb-4 rounded-lg bg-slate-50 p-3">
+            <label
+              htmlFor="walk-time"
+              className="text-xs font-medium text-slate-600"
+            >
+              Kõndimisaeg peatusesse
+            </label>
+
+            <select
+              id="walk-time"
+              value={walkMinutes}
+              onChange={(event) =>
+                setWalkMinutes(
+                  Number(event.target.value)
+                )
+              }
+              className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value={3}>
+                3 min
+              </option>
+
+              <option value={5}>
+                5 min
+              </option>
+
+              <option value={7}>
+                7 min
+              </option>
+
+              <option value={10}>
+                10 min
+              </option>
+            </select>
+          </div>
+
+          {nextReachableDeparture && (
+            <div
+              className={`mb-4 rounded-lg border p-4 ${
+                shouldLeaveNow
+                  ? "border-amber-300 bg-amber-50"
+                  : "border-slate-200 bg-slate-50"
+              }`}
+            >
+              {shouldLeaveNow ? (
+                <>
+                  <p className="text-lg font-bold text-amber-800">
+                    HAKKA MINEMA!
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-700">
+                    Tramm{" "}
+                    <strong>
+                      {nextReachableDeparture.line}
+                    </strong>{" "}
+                    sihtkohta{" "}
+                    <strong>
+                      {nextReachableDeparture.destination ??
+                        "teadmata"}
+                    </strong>{" "}
+                    väljub umbes{" "}
+                    <strong>
+                      {
+                        nextReachableDeparture.minutesUntil
+                      }{" "}
+                      min
+                    </strong>{" "}
+                    pärast.
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Peatusesse kõndimiseks
+                    arvestatud {walkMinutes} min.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold text-slate-800">
+                    Järgmine sobiv tramm
+                  </p>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    Tramm{" "}
+                    <strong>
+                      {nextReachableDeparture.line}
+                    </strong>{" "}
+                    –{" "}
+                    {nextReachableDeparture.destination ??
+                      "sihtkoht teadmata"}
+                  </p>
+
+                  <p className="text-sm text-slate-600">
+                    Väljub{" "}
+                    {
+                      nextReachableDeparture.minutesUntil
+                    }{" "}
+                    min pärast.
+                  </p>
+
+                  {leaveInMinutes != null && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Võid veel umbes{" "}
+                      {leaveInMinutes} min oodata
+                      enne peatusesse minemist.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           {departuresError && (
             <p className="text-sm text-red-600">
