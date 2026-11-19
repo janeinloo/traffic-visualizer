@@ -13,6 +13,9 @@ const DATEX_TRAFFIC_URL =
 const DATEX_SITES_URL =
   "https://tarktee.transpordiamet.ee/api/v1/datex/measurementSites";
 
+const TLT_GPS_URL =
+  "https://transport.tallinn.ee/gps.txt";
+
 // Traffic muutub tihti.
 const TRAFFIC_CACHE_DURATION_MS = 2 * 60 * 1000;
 
@@ -576,6 +579,77 @@ app.get("/api/traffic-map", async (_req, res) => {
     res.status(500).json({
       error:
         "DATEX kaardiandmete koostamine ebaõnnestus.",
+    });
+  }
+});
+
+app.get("/api/trams", async (_req, res) => {
+  try {
+    const response = await fetch(TLT_GPS_URL);
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error:
+          "TLT trammiandmete päring ebaõnnestus.",
+      });
+    }
+
+    const text = await response.text();
+
+    const trams = text
+      .trim()
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split(",");
+
+        const rawLine = parts[1];
+
+        return {
+          type: parts[0],
+
+          // T1 -> 1, T3 -> 3
+          line: rawLine?.replace(/^T/, ""),
+
+          longitude:
+            Number(parts[2]) / 1_000_000,
+
+          latitude:
+            Number(parts[3]) / 1_000_000,
+
+          vehicleId: parts[6] ?? null,
+
+          destination:
+            parts[9] ?? null,
+        };
+      })
+      .filter(
+        (vehicle) =>
+          vehicle.type === "3" &&
+          (vehicle.line === "1" ||
+            vehicle.line === "3") &&
+          Number.isFinite(
+            vehicle.latitude
+          ) &&
+          Number.isFinite(
+            vehicle.longitude
+          )
+      );
+
+    res.json({
+      count: trams.length,
+      trams,
+    });
+  } catch (error) {
+    console.error(
+      "TLT trammiandmete viga:",
+      error
+    );
+
+    res.status(500).json({
+      error:
+        "TLT trammiandmete töötlemine ebaõnnestus.",
     });
   }
 });
