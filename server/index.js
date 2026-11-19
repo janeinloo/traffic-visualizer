@@ -16,6 +16,22 @@ const DATEX_SITES_URL =
 const TLT_GPS_URL =
   "https://transport.tallinn.ee/gps.txt";
 
+const TLT_DEPARTURES_URL =
+  "https://transport.tallinn.ee/siri-stop-departures.php";
+
+const TLU_STOPS = {
+  "1232": {
+    name: "Tallinna Ülikool",
+    latitude: 59.43854,
+    longitude: 24.77137,
+  },
+  "1233": {
+    name: "Tallinna Ülikool",
+    latitude: 59.43837,
+    longitude: 24.77133,
+  },
+};
+
 // Traffic muutub tihti.
 const TRAFFIC_CACHE_DURATION_MS = 2 * 60 * 1000;
 
@@ -36,6 +52,42 @@ const parser = new XMLParser({
 
 // Helper-funktsioonid
 
+function secondsToTime(seconds) {
+  const normalized =
+    ((Number(seconds) % 86400) + 86400) %
+    86400;
+
+  const hours = Math.floor(
+    normalized / 3600
+  );
+
+  const minutes = Math.floor(
+    (normalized % 3600) / 60
+  );
+
+  return `${String(hours).padStart(
+    2,
+    "0"
+  )}:${String(minutes).padStart(
+    2,
+    "0"
+  )}`;
+}
+
+function getSecondsUntil(
+  targetSeconds,
+  currentSeconds
+) {
+  let difference =
+    targetSeconds - currentSeconds;
+
+  // Südaöö üleminek
+  if (difference < -12 * 60 * 60) {
+    difference += 24 * 60 * 60;
+  }
+
+  return difference;
+}
 
 function asArray(value) {
   if (!value) {
@@ -653,6 +705,192 @@ app.get("/api/trams", async (_req, res) => {
     });
   }
 });
+
+app.get(
+  "/api/tram-departures",
+  async (_req, res) => {
+    try {
+      const stopIds = Object.keys(
+        TLU_STOPS
+      ).join(",");
+
+      const response = await fetch(
+        `${TLT_DEPARTURES_URL}?stopid=${stopIds}`
+      );
+
+      if (!response.ok) {
+        return res
+          .status(response.status)
+          .json({
+            error:
+              "TLT väljumiste päring ebaõnnestus.",
+          });
+      }
+
+      const text = await response.text();
+
+      const lines = text
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        throw new Error(
+          "Väljumiste vastus oli tühi."
+        );
+      }
+
+      // Header sisaldab TLT enda hetke aega
+      // sekundites alates südaööst.
+      const header = lines[0].split(",");
+
+      const currentSeconds = Number(
+        header[4]
+      );
+
+      let currentStopId = null;
+
+      const departures = [];
+
+      for (const line of lines.slice(1)) {
+        const parts = line.split(",");
+
+        if (parts[0] === "stop") {
+          currentStopId = parts[1];
+          continue;
+        }
+
+        if (
+          !currentStopId ||
+          !TLU_STOPS[currentStopId]
+        ) {
+          continue;
+        }
+
+        const route =
+          parts[1]?.replace(
+            /^T/i,
+            ""
+          ) ?? "";
+
+        // Meid huvitavad ainult trammid 1 ja 3.
+        if (
+          route !== "1" &&
+          route !== "3"
+        ) {
+          continue;
+        }
+
+        const expectedSeconds =
+          Number(parts[2]);
+
+        const scheduledSeconds =
+          Number(parts[3]);
+
+        if (
+          !Number.isFinite(
+            expectedSeconds
+          ) ||
+          !Number.isFinite(
+            scheduledSeconds
+          )
+        ) {
+          continue;
+        }
+
+        const secondsUntil =
+          getSecondsUntil(
+            expectedSeconds,
+            currentSeconds
+          );
+
+        // Kuvame ainult järgmise tunni.
+        if (
+          secondsUntil < 0 ||
+          secondsUntil > 60 * 60
+        ) {
+          continue;
+        }
+
+        const stop =
+          TLU_STOPS[currentStopId];
+
+        departures.push({
+          stopId: currentStopId,
+          stopName: stop.name,
+
+          line: route,
+
+          destination:
+            parts[4] ?? null,
+
+          expectedTime:
+            secondsToTime(
+              expectedSeconds
+            ),
+
+          scheduledTime:
+            secondsToTime(
+              scheduledSeconds
+            ),
+
+          minutesUntil: Math.ceil(
+            secondsUntil / 60
+          ),
+
+          delayMinutes: Math.round(
+            (expectedSeconds -
+              scheduledSeconds) /
+              60
+          ),
+        });
+      }
+
+      departures.sort(
+        (a, b) =>
+          a.minutesUntil -
+          b.minutesUntil
+      );
+
+      res.json({
+        stopName:
+          "Tallinna Ülikool",
+
+        currentTime:
+          Number.isFinite(
+            currentSeconds
+          )
+            ? secondsToTime(
+                currentSeconds
+              )
+            : null,
+
+        stops: Object.entries(
+          TLU_STOPS
+        ).map(([id, stop]) => ({
+          id,
+          ...stop,
+        })),
+
+        count: departures.length,
+
+        departures:
+          departures.slice(0, 12),
+      });
+    } catch (error) {
+      console.error(
+        "TLT väljumiste viga:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "TLT väljumiste töötlemine ebaõnnestus.",
+      });
+    }
+  }
+);
 
 
 // Server
